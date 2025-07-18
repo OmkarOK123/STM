@@ -198,3 +198,224 @@ If you want:
 
 👉 Let me know which one you want!
 
+✅ Sure! Here's a **Step-by-Step Guide to Configure Timer on STM32F407** (with output demonstration).
+
+---
+
+## ✅ **Objective**
+
+We will:
+
+1. Configure **TIM2** to generate a **1-second time base interrupt**.
+2. Toggle an **LED on Discovery board (PD12)** on each interrupt (blink every 1s).
+
+---
+
+## ✅ **Step 1: CubeMX Configuration**
+
+1. **Open CubeMX** (via STM32CubeIDE).
+2. Select your **STM32F407VG** MCU or Discovery board.
+
+### 🟩 **GPIO**
+
+* Enable **GPIOD PIN 12** → Mode: **Output Push-Pull**.
+
+### 🟦 **Timer (TIM2)**
+
+1. Enable **TIM2 → Mode: Internal Clock**.
+2. Click **Parameter Settings**:
+
+   * **Prescaler:** `8399`
+   * **Counter Period (ARR):** `9999`
+   * **Clock Division:** `No Division`
+
+> This config results in:
+
+```
+84 MHz / (8399 + 1) = 10 kHz
+10 kHz / (9999 + 1) = 1 Hz (1s interval)
+```
+
+3. Enable **TIM2 global interrupt** under **NVIC Settings**.
+
+### 🟧 **Clock Config**
+
+* Ensure the clock is set to **168 MHz (SYSCLK)**.
+
+### ✅ Click **Project → Generate Code**.
+
+---
+
+## ✅ **Step 2: Generated Functions**
+
+CubeMX will generate **MX\_TIM2\_Init()**, which sets the timer.
+
+---
+
+## ✅ **Step 3: Modify `main.c`**
+
+### 🔹 Add to **USER CODE 2**:
+
+```c
+HAL_TIM_Base_Start_IT(&htim2);
+```
+
+### 🔹 Implement **Callback for Timer Interrupt**
+
+In **USER CODE 4**:
+
+```c
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if(htim->Instance == TIM2)
+    {
+        HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);  // Toggle LED
+    }
+}
+```
+
+### ✅ Your `main.c` Example:
+
+```c
+#include "main.h"
+
+TIM_HandleTypeDef htim2;
+
+int main(void)
+{
+  HAL_Init();
+  SystemClock_Config();
+  MX_GPIO_Init();
+  MX_TIM2_Init();
+
+  HAL_TIM_Base_Start_IT(&htim2);  // Start timer with interrupt
+
+  while (1)
+  {
+    // Main loop does nothing, LED toggling is in interrupt
+  }
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if(htim->Instance == TIM2)
+    {
+        HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
+    }
+}
+```
+
+---
+
+## ✅ **Step 4: Build and Flash**
+
+* Build the project.
+* Flash to your STM32F407 Discovery board.
+* You should see **LD4 (Green LED on PD12)** blink **once every 1 second**.
+
+---
+
+## ✅ **Bonus: Adjust Timer Frequency**
+
+* Change **Prescaler / Period** to adjust blink rate.
+* For faster blinking (e.g. 0.5s), reduce period.
+
+---
+
+## ✅ **Summary of Steps**
+
+| Step | Action                                    |
+| ---- | ----------------------------------------- |
+| 1    | Configure GPIO & Timer via CubeMX         |
+| 2    | Enable NVIC interrupt for TIM2            |
+| 3    | Start Timer Interrupt in `main.c`         |
+| 4    | Implement `HAL_TIM_PeriodElapsedCallback` |
+| 5    | Flash & Observe LED blinking              |
+
+---
+
+If you want:
+
+* ✅ **PWM generation on Timer**
+* ✅ **Input Capture to measure frequency**
+* ✅ **Timer + UART print on interval**
+
+👉 Let me know!
+✅ Yes, your code is **correct and complete** for generating a **1-second periodic interrupt using TIM2** that toggles **PD12 LED** on the STM32F407 Discovery board.
+
+### 🔎 **Quick Verification**
+
+* **TIM2 Init:**
+
+```c
+htim2.Init.Prescaler = 8399;
+htim2.Init.Period = 9999;
+```
+
+✔ This gives 1Hz (1s) interrupt.
+
+* **Timer Started in Interrupt Mode:**
+
+```c
+HAL_TIM_Base_Start_IT(&htim2);
+```
+
+✔ Correct.
+
+* **LED GPIO PD12:**
+
+```c
+GPIO_PIN_12 initialized as OUTPUT_PP.
+```
+
+* **Callback:**
+
+```c
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if(htim->Instance == TIM2)
+    {
+        HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
+    }
+}
+```
+
+✔ Correctly toggles the LED.
+
+---
+
+### ✅ **Bonus Suggestion**
+
+If you want to confirm via **UART** too, you can add:
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+extern UART_HandleTypeDef huart2;  // Ensure UART2 is initialized in CubeMX.
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if(htim->Instance == TIM2)
+    {
+        HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
+
+        char msg[] = "Timer Interrupt Triggered\r\n";
+        HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+    }
+}
+```
+
+> This will print on UART whenever the timer interrupt fires.
+
+---
+
+✅ **Result Expected:** LED on **PD12** blinks every **1 second**.
+
+If you want:
+
+* Timer frequency variations
+* PWM generation
+* Input capture
+
+👉 Tell me and I’ll share complete examples.
