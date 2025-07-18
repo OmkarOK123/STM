@@ -419,3 +419,106 @@ If you want:
 * Input capture
 
 👉 Tell me and I’ll share complete examples.
+✅ Here's a **step-by-step guide to generate PWM using Timer on STM32 (STM32F407)** to **dim an LED**.
+
+---
+
+## ✅ **Step 1: CubeMX / STM32CubeIDE Configuration**
+
+1. **Enable Timer (e.g., TIM3) in PWM Generation Mode**
+
+   * In **Timers**, select **TIM3 → Channel 1 → PWM Generation CH1**.
+   * Select an output pin, e.g., **PA6 (TIM3\_CH1)**.
+
+2. **Configure Timer Settings**
+
+   * Prescaler: e.g., **83** → gives 1 MHz timer clock (from 84 MHz APB1 Timer Clock).
+   * Period: e.g., **999** → gives a PWM frequency of 1 kHz.
+
+3. **Configure GPIO**
+
+   * The chosen pin (e.g., **PA6**) is automatically set as **AF mode**.
+
+4. **Initialize the Timer in PWM mode**
+
+---
+
+## ✅ **Step 2: Generated Code**
+
+### In `MX_TIM3_Init()`
+
+```c
+static void MX_TIM3_Init(void)
+{
+    TIM_OC_InitTypeDef sConfigOC = {0};
+
+    htim3.Instance = TIM3;
+    htim3.Init.Prescaler = 83;    // 84MHz / (83 + 1) = 1MHz
+    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim3.Init.Period = 999;      // 1MHz / (999 + 1) = 1kHz PWM frequency
+    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    HAL_TIM_PWM_Init(&htim3);
+
+    sConfigOC.OCMode = TIM_OCMODE_PWM1;
+    sConfigOC.Pulse = 499;        // 50% Duty cycle initially
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+    HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1);
+}
+```
+
+---
+
+## ✅ **Step 3: Start PWM in `main.c`**
+
+```c
+MX_TIM3_Init();    // Initialize TIM3 PWM
+HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);   // Start PWM on Channel 1
+```
+
+---
+
+## ✅ **Step 4: Change Brightness Dynamically**
+
+You can adjust the **PWM duty cycle** dynamically like this:
+
+```c
+__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, duty_cycle);
+```
+
+Where `duty_cycle` varies from **0 to 999** (for 0% to 100%).
+
+Example:
+
+```c
+for(uint16_t duty = 0; duty <= 999; duty+=10)
+{
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, duty);
+    HAL_Delay(10);
+}
+```
+
+This will **gradually increase the brightness of the LED**.
+
+---
+
+## ✅ **Summary of Configuration**
+
+| Parameter     | Value                          |
+| ------------- | ------------------------------ |
+| Timer Clock   | 84 MHz                         |
+| Prescaler     | 83                             |
+| Period        | 999                            |
+| PWM Frequency | 1 kHz                          |
+| Duty Cycle    | 0-100% via compare value 0-999 |
+
+---
+
+## ✅ **Bonus Tip**
+
+For smooth fading, implement a **duty cycle ramp-up/down** in a loop with a small delay.
+
+---
+
+If you want I can generate the **full code template** or help with **multiple PWM channels / higher frequency / specific LED pins**.
