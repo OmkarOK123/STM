@@ -522,3 +522,161 @@ For smooth fading, implement a **duty cycle ramp-up/down** in a loop with a smal
 ---
 
 If you want I can generate the **full code template** or help with **multiple PWM channels / higher frequency / specific LED pins**.
+
+Here is a **step-by-step guide for using ADC in STM32 (HAL with STM32CubeIDE)**. This applies to STM32F4 and similar series.
+
+---
+
+## ✅ **Step 1: Open STM32CubeIDE and Create a New Project**
+
+1. Open **STM32CubeIDE**.
+2. Go to **File > New > STM32 Project**.
+3. Select your **MCU/Board** (e.g., STM32F407VG, STM32F103C8).
+4. Click **Next**, then give the project a name and finish.
+
+---
+
+## ✅ **Step 2: Configure ADC Peripheral**
+
+1. In the **.ioc configuration window**:
+2. Go to the **Analog > ADC1** section.
+3. Enable **INx** pin (e.g., IN0 corresponds to **PA0**).
+4. Set **Mode**: **Independent Mode**.
+5. **Resolution**: 12-bit (default).
+6. **Data Alignment**: Right.
+7. **Scan Conversion Mode**: Disabled (for single channel).
+8. **Continuous Conversion Mode**: Optional (enabled for continuous sampling).
+9. **DMA Continuous Requests**: Enable if you want DMA.
+10. **End of Conversion Selection**: EOC Flag.
+
+### Example:
+
+* ADC1 Channel 0 - PA0
+
+---
+
+## ✅ **Step 3: Configure the Clock**
+
+1. Open **Clock Configuration** tab.
+2. Ensure the ADC clock is enabled, and APB2 timer/ADC clock is adequately configured (ADC max 36 MHz for STM32F4).
+
+---
+
+## ✅ **Step 4: Enable NVIC (Optional)**
+
+* In **ADC1 settings**, enable **Interrupts** if you want to use interrupt-based ADC.
+* Enable **ADC1 global interrupt**.
+
+---
+
+## ✅ **Step 5: Generate Code**
+
+1. Click **Project > Generate Code**.
+2. IDE will generate code including **adc.c, adc.h**, and initialize in **main.c**.
+
+---
+
+## ✅ **Step 6: Write ADC Code in `main.c`**
+
+Example code to read ADC value in **polling mode**:
+
+```c
+#include "main.h"
+
+ADC_HandleTypeDef hadc1;  // already declared in adc.h
+
+uint32_t adc_value;
+
+int main(void)
+{
+  HAL_Init();
+  SystemClock_Config();
+  MX_GPIO_Init();
+  MX_ADC1_Init();   // initialize ADC
+
+  while (1)
+  {
+    HAL_ADC_Start(&hadc1);                      // Start ADC
+    HAL_ADC_PollForConversion(&hadc1, 100);     // Wait for conversion
+    adc_value = HAL_ADC_GetValue(&hadc1);       // Get ADC value
+    HAL_ADC_Stop(&hadc1);                       // Stop ADC
+
+    HAL_Delay(500);   // delay for observation
+  }
+}
+```
+
+---
+
+## ✅ **Step 7: Functions Overview**
+
+| Function                      | Purpose                        |
+| ----------------------------- | ------------------------------ |
+| `MX_ADC1_Init()`              | Initialize ADC peripheral.     |
+| `HAL_ADC_Start()`             | Start ADC conversion.          |
+| `HAL_ADC_PollForConversion()` | Wait until conversion is done. |
+| `HAL_ADC_GetValue()`          | Get the converted value.       |
+| `HAL_ADC_Stop()`              | Stop the ADC.                  |
+
+---
+
+## ✅ **Step 8: To Use with Interrupt**
+
+### Enable ADC interrupt and write callback:
+
+```c
+HAL_ADC_Start_IT(&hadc1);   // Start ADC with interrupt
+```
+
+In **adc.c** or **main.c**, implement:
+
+```c
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+    if(hadc->Instance == ADC1)
+    {
+        adc_value = HAL_ADC_GetValue(hadc);
+    }
+}
+```
+
+---
+
+## ✅ **Step 9: To Use with DMA**
+
+1. Enable **DMA** in ADC settings in **CubeMX**.
+2. Example:
+
+```c
+uint32_t adc_buffer[1];  // for single channel
+
+HAL_ADC_Start_DMA(&hadc1, adc_buffer, 1);
+```
+
+---
+
+## ✅ **Step 10: Convert ADC Value to Voltage**
+
+Assuming 3.3V reference and 12-bit ADC:
+
+```c
+float voltage = (adc_value * 3.3) / 4095;
+```
+
+---
+
+## ✅ **Bonus Tips**
+
+* Always check **HAL status** for errors.
+* Use **scope/LED/Serial UART** to verify ADC readings.
+* For multiple channels, enable **scan mode** and configure multiple INx pins.
+
+---
+
+Let me know if you need:
+
+* Multi-channel ADC example
+* ADC with DMA full code
+* ADC interrupt full example
+* STM32F1-specific guide
+
